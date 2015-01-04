@@ -50,6 +50,7 @@ class FilePart:
     """
     def __init__(self, fileobj, length):
         self.fileobj = fileobj
+        self.begin = fileobj.tell()
         self.length = length
         self.offset = 0
         self.buf = "" 
@@ -94,3 +95,21 @@ class FilePart:
         while line:
             yield line
             line = self.readline()
+
+    def pos_cache(self):
+        return FilePartPosCache(self)
+
+class FilePartPosCache:
+    def __init__(self, part):
+        self.part = part
+        self.cache_pos = self.part.fileobj.tell()
+        self.cache_offset = self.part.offset
+
+    def __enter__(self):
+        self.part.fileobj.seek(self.part.begin)
+        self.part.offset = 0
+        return self.part
+
+    def __exit__(self, type, value, traceback):
+        self.part.fileobj.seek(self.cache_pos)
+        self.part.offset = self.cache_offset

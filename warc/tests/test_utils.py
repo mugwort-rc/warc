@@ -54,3 +54,32 @@ class TestFilePart:
     def test_iter(self):
         part = FilePart(StringIO(self.text), 11)
         assert list(part) == ["aaaa\n", "bbbb\n", "c"]
+
+    def test_pos_cache(self):
+        part = FilePart(StringIO(self.text), 10)
+        prev = part.fileobj.tell()
+        part.read()
+        current = part.fileobj.tell()
+
+        with part.pos_cache() as cached:
+            assert part.fileobj.tell() == prev
+            assert part.read(3) == "aaa"
+            assert part.read(3) == "a\nb"
+        assert part.fileobj.tell() == current
+
+    def test_pos_cache_after(self):
+        part = FilePart(StringIO(self.text), 10)
+        prev = part.fileobj.tell()
+        assert part.read(3) == "aaa"
+        assert part.read(3) == "a\nb"
+        current = part.fileobj.tell()
+
+        with part.pos_cache() as cached:
+            assert part.fileobj.tell() == prev
+            assert part.read(4) == "aaaa"
+            assert part.fileobj.tell() != current
+        assert part.fileobj.tell() == current
+
+        assert part.read(3) == "bbb"
+        assert part.read(3) == "\n"
+        assert part.read(3) == ""
